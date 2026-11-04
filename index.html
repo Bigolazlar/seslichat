@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hırçın Lazlar - Sohbet</title>
+<title>Hırçın Lazlar - Canlı Sohbet</title>
 
 <style>
 *{box-sizing:border-box}
@@ -14,33 +14,29 @@ body{
  background:#080f16;
  color:white;
  font-family:Arial,sans-serif;
- text-align:center;
 }
 
 header{
- padding:20px 10px;
+ text-align:center;
+ padding:15px;
  background:#111c27;
 }
 
-h1{
- margin:5px;
- color:#20d879;
-}
+h1{color:#20d879;margin:5px}
+header p{color:#aab5c0;margin:5px}
 
-p{color:#aab5c0}
-
-.panel{
- max-width:450px;
- margin:25px auto;
+#login{
+ max-width:430px;
+ margin:35px auto;
  padding:25px;
  background:#151d25;
- border-radius:20px;
+ border-radius:18px;
+ text-align:center;
 }
 
 input{
  width:100%;
- padding:15px;
- margin:9px 0;
+ padding:14px;
  border:1px solid #34414e;
  border-radius:10px;
  background:#0c141c;
@@ -49,42 +45,123 @@ input{
 }
 
 button{
- width:100%;
- padding:16px;
- margin-top:12px;
+ padding:13px;
  border:0;
- border-radius:12px;
+ border-radius:10px;
  background:#20d879;
  color:#07140d;
- font-size:17px;
  font-weight:bold;
  cursor:pointer;
 }
 
-button:disabled{opacity:.5}
+#join{width:100%;margin-top:12px}
 
 #status{
+ text-align:center;
  color:#20d879;
  padding:10px;
 }
 
+#workspace{
+ display:none;
+ grid-template-columns:minmax(0, 2fr) minmax(280px, 1fr);
+ gap:12px;
+ padding:12px;
+ height:calc(100vh - 145px);
+ min-height:500px;
+}
+
+.video-box,.chat-box{
+ background:#151d25;
+ border:1px solid #283746;
+ border-radius:15px;
+ overflow:hidden;
+ min-height:0;
+}
+
+.video-box{
+ display:flex;
+ flex-direction:column;
+}
+
+.box-title{
+ padding:13px;
+ background:#202d39;
+ font-weight:bold;
+}
+
 #meet{
- width:100%;
- height:80vh;
- min-height:550px;
- background:#111c27;
+ flex:1;
+ min-height:0;
 }
 
-footer{
- padding:20px;
- color:#687786;
+#meet iframe{
+ border:0;
 }
 
-@media(max-width:600px){
- #meet{
-   height:80vh;
-   min-height:500px;
+.chat-box{
+ display:flex;
+ flex-direction:column;
+}
+
+#messages{
+ flex:1;
+ min-height:0;
+ overflow-y:auto;
+ padding:12px;
+ text-align:left;
+}
+
+.message{
+ background:#202d39;
+ border-radius:10px;
+ padding:10px;
+ margin-bottom:9px;
+ overflow-wrap:anywhere;
+}
+
+.message .sender{
+ color:#20d879;
+ font-weight:bold;
+ font-size:13px;
+}
+
+.message .content{
+ margin-top:5px;
+ white-space:pre-wrap;
+}
+
+#chat-form{
+ display:flex;
+ gap:7px;
+ padding:10px;
+ background:#202d39;
+}
+
+#chat-input{
+ flex:1;
+ min-width:0;
+}
+
+#send{
+ padding:0 15px;
+}
+
+#leave{
+ display:block;
+ margin:12px auto;
+ background:#e74c3c;
+ color:white;
+}
+
+@media(max-width:700px){
+ #workspace{
+   grid-template-columns:1fr;
+   height:auto;
+   min-height:0;
  }
+ .video-box{height:55vh;min-height:350px}
+ .chat-box{height:400px}
 }
 </style>
 </head>
@@ -96,153 +173,267 @@ footer{
 <p>🎥 Görüntülü ve Yazılı Sohbet</p>
 </header>
 
-<div class="panel" id="login">
+<div id="login">
 <h2>Genel Sohbete Katıl</h2>
-
-<input
- id="username"
+<input id="username"
  placeholder="Takma adını yaz"
  maxlength="30"
- autocomplete="off"
->
-
+ autocomplete="off">
 <button id="join">SOHBETE KATIL</button>
-
 <p>Üyelik yok • E-posta yok • Şifre yok</p>
 </div>
 
-<p id="status">Arkadaşlarınla buluşmaya hazır mısın?</p>
+<div id="status">Arkadaşlarınla buluşmaya hazır mısın?</div>
 
-<div id="meet"></div>
+<div id="workspace">
 
-<footer>🔥 Hırçın Lazlar © 2026</footer>
+ <section class="video-box">
+   <div class="box-title">🎥 Canlı Kameralar</div>
+   <div id="meet"></div>
+ </section>
+
+ <section class="chat-box">
+   <div class="box-title">💬 Genel Sohbet</div>
+
+   <div id="messages">
+     <div class="message">
+       <div class="sender">Sistem</div>
+       <div class="content">
+         Hırçın Lazlar sohbet odasına hoş geldin!
+       </div>
+     </div>
+   </div>
+
+   <form id="chat-form">
+     <input id="chat-input"
+       placeholder="Mesajını yaz..."
+       maxlength="1000"
+       autocomplete="off">
+     <button id="send" type="submit">Gönder</button>
+   </form>
+ </section>
+
+</div>
+
+<button id="leave" style="display:none">
+SOHBETTEN AYRIL
+</button>
 
 <script>
-let api = null;
+let api=null;
+let connecting=false;
 
-const button = document.getElementById("join");
-const statusText = document.getElementById("status");
+const ROOM="HircinLazlarGenelSohbet2026";
 
-const GENERAL_ROOM = "HircinLazlarGenelSohbet2026";
+const login=document.getElementById("login");
+const workspace=document.getElementById("workspace");
+const statusText=document.getElementById("status");
+const messages=document.getElementById("messages");
+const joinButton=document.getElementById("join");
+const leaveButton=document.getElementById("leave");
 
-button.onclick = function(){
+function addMessage(name,message){
 
- const name = document
-   .getElementById("username")
-   .value.trim();
+ const box=document.createElement("div");
+ box.className="message";
+
+ const sender=document.createElement("div");
+ sender.className="sender";
+ sender.textContent=name;
+
+ const content=document.createElement("div");
+ content.className="content";
+ content.textContent=message;
+
+ box.appendChild(sender);
+ box.appendChild(content);
+
+ messages.appendChild(box);
+ messages.scrollTop=messages.scrollHeight;
+}
+
+function resetRoom(message){
+
+ if(api){
+   const oldApi=api;
+   api=null;
+   try{oldApi.dispose()}catch(e){}
+ }
+
+ connecting=false;
+ statusText.textContent=message;
+
+ workspace.style.display="none";
+ login.style.display="block";
+ leaveButton.style.display="none";
+
+ messages.innerHTML="";
+ addMessage("Sistem","Hırçın Lazlar sohbet odasına hoş geldin!");
+
+ joinButton.disabled=false;
+ document.getElementById("meet").innerHTML="";
+}
+
+function startMeeting(name){
+
+ login.style.display="none";
+ workspace.style.display="grid";
+ leaveButton.style.display="block";
+
+ messages.innerHTML="";
+ addMessage("Sistem","Genel Sohbet'e hoş geldin "+name+"!");
+
+ try{
+
+ api=new JitsiMeetExternalAPI("meet.jit.si",{
+
+   roomName:ROOM,
+   parentNode:document.getElementById("meet"),
+   width:"100%",
+   height:"100%",
+
+   userInfo:{
+     displayName:name
+   },
+
+   configOverwrite:{
+     prejoinPageEnabled:false,
+     startWithAudioMuted:true,
+     startWithVideoMuted:true,
+     toolbarButtons:[
+       "microphone",
+       "camera",
+       "desktop",
+       "participants-pane",
+       "tileview",
+       "hangup",
+       "fullscreen",
+       "settings"
+     ]
+   },
+
+   interfaceConfigOverwrite:{
+     DISABLE_JOIN_LEAVE_NOTIFICATIONS:false
+   }
+
+ });
+
+ // Görüşmeye katılınca
+ api.addEventListener("videoConferenceJoined",()=>{
+   connecting=false;
+   statusText.textContent="🟢 Genel Sohbet'e bağlandın!";
+   addMessage("Sistem","Bağlantı başarılı. Sohbet edebilirsin.");
+ });
+
+ // Gelen mesajlar
+ api.addEventListener("incomingMessage",(event)=>{
+
+   if(event.message){
+     addMessage(
+       event.nick || "Misafir",
+       event.message
+     );
+   }
+
+ });
+
+ // Görüşmeden ayrılınca
+ api.addEventListener("videoConferenceLeft",()=>{
+   resetRoom("Sohbetten ayrıldın.");
+ });
+
+ api.addEventListener("readyToClose",()=>{
+   resetRoom("Sohbet kapatıldı.");
+ });
+
+ }catch(error){
+   resetRoom("Bağlantı hatası. Tekrar deneyin.");
+ }
+}
+
+// Giriş
+joinButton.onclick=function(){
+
+ if(connecting || api)return;
+
+ const name=document.getElementById("username").value.trim();
 
  if(!name){
-   alert("Lütfen bir takma ad yaz.");
+   alert("Lütfen takma adını yaz.");
    return;
  }
 
- button.disabled = true;
- statusText.textContent = "Sohbete bağlanılıyor...";
+ connecting=true;
+ joinButton.disabled=true;
+ statusText.textContent="Bağlanılıyor...";
 
- function startMeeting(){
+ function loadJitsi(){
 
-   document.getElementById("login").style.display = "none";
-
-   try{
-
-     api = new JitsiMeetExternalAPI("meet.jit.si",{
-
-       roomName: GENERAL_ROOM,
-
-       parentNode: document.getElementById("meet"),
-
-       width:"100%",
-       height:"100%",
-
-       userInfo:{
-         displayName:name
-       },
-
-       configOverwrite:{
-
-         prejoinPageEnabled:false,
-
-         startWithAudioMuted:true,
-         startWithVideoMuted:true,
-
-         disableDeepLinking:true
-       },
-
-       interfaceConfigOverwrite:{
-
-         TOOLBAR_BUTTONS:[
-           "microphone",
-           "camera",
-           "desktop",
-           "chat",
-           "participants-pane",
-           "tileview",
-           "hangup",
-           "fullscreen",
-           "settings"
-         ],
-
-         DISABLE_JOIN_LEAVE_NOTIFICATIONS:false
-       }
-     });
-
-     api.addEventListener("videoConferenceJoined",()=>{
-       statusText.textContent =
-         "🟢 Genel Sohbete bağlandın!";
-     });
-
-     api.addEventListener("videoConferenceLeft",()=>{
-       resetRoom("Sohbetten ayrıldın.");
-     });
-
-     api.addEventListener("readyToClose",()=>{
-       resetRoom("Sohbet kapatıldı.");
-     });
-
-   }catch(error){
-
-     statusText.textContent =
-       "Bağlantı hatası. Tekrar deneyin.";
-
-     document.getElementById("login").style.display="block";
-     button.disabled=false;
-   }
- }
-
- function resetRoom(message){
-
-   statusText.textContent=message;
-
-   document.getElementById("meet").innerHTML="";
-
-   document.getElementById("login").style.display="block";
-
-   button.disabled=false;
-   api=null;
+   startMeeting(name);
  }
 
  if(window.JitsiMeetExternalAPI){
-
-   startMeeting();
-
+   loadJitsi();
  }else{
 
    const script=document.createElement("script");
-
    script.src="https://meet.jit.si/external_api.js";
 
-   script.onload=startMeeting;
+   script.onload=loadJitsi;
 
    script.onerror=()=>{
-     button.disabled=false;
-     statusText.textContent=
-       "Bağlantı kurulamadı. Tekrar deneyin.";
+     connecting=false;
+     joinButton.disabled=false;
+     statusText.textContent="Bağlantı kurulamadı.";
    };
 
    document.head.appendChild(script);
  }
 };
+
+// Mesaj gönderme
+document.getElementById("chat-form").onsubmit=function(e){
+
+ e.preventDefault();
+
+ const input=document.getElementById("chat-input");
+ const message=input.value.trim();
+
+ if(!message || !api)return;
+
+ try{
+
+   api.executeCommand("sendChatMessage",message);
+
+   addMessage(
+     document.getElementById("username").value.trim(),
+     message
+   );
+
+   input.value="";
+
+ }catch(error){
+   statusText.textContent="Mesaj gönderilemedi.";
+ }
+};
+
+// Ayrılma
+leaveButton.onclick=function(){
+
+ if(api){
+   try{
+     api.executeCommand("hangup");
+   }catch(e){
+     resetRoom("Sohbetten ayrıldın.");
+   }
+ }
+};
+
 </script>
+
+<footer style="text-align:center;padding:15px;color:#687786">
+🔥 Hırçın Lazlar © 2026
+</footer>
 
 </body>
 </html>
