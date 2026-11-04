@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hırçın Lazlar - Sohbet</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ background:#080f16;
+ color:white;
+ font-family:Arial,sans-serif;
+ text-align:center;
+}
+
+header{
+ padding:20px 10px;
+ background:#111c27;
+}
+
+h1{
+ margin:5px;
+ color:#20d879;
+}
+
+p{color:#aab5c0}
+
+.panel{
+ max-width:450px;
+ margin:25px auto;
+ padding:25px;
+ background:#151d25;
+ border-radius:20px;
+}
+
+input{
+ width:100%;
+ padding:15px;
+ margin:9px 0;
+ border:1px solid #34414e;
+ border-radius:10px;
+ background:#0c141c;
+ color:white;
+ font-size:16px;
+}
+
+button{
+ width:100%;
+ padding:16px;
+ margin-top:12px;
+ border:0;
+ border-radius:12px;
+ background:#20d879;
+ color:#07140d;
+ font-size:17px;
+ font-weight:bold;
+ cursor:pointer;
+}
+
+button:disabled{opacity:.5}
+
+#status{
+ color:#20d879;
+ padding:10px;
+}
+
+#meet{
+ width:100%;
+ height:80vh;
+ min-height:550px;
+ background:#111c27;
+}
+
+footer{
+ padding:20px;
+ color:#687786;
+}
+
+@media(max-width:600px){
+ #meet{
+   height:80vh;
+   min-height:500px;
+ }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>😎 HIRÇIN LAZLAR</h1>
+<p>🎥 Görüntülü ve Yazılı Sohbet</p>
+</header>
+
+<div class="panel" id="login">
+<h2>Genel Sohbete Katıl</h2>
+
+<input
+ id="username"
+ placeholder="Takma adını yaz"
+ maxlength="30"
+ autocomplete="off"
+>
+
+<button id="join">SOHBETE KATIL</button>
+
+<p>Üyelik yok • E-posta yok • Şifre yok</p>
+</div>
+
+<p id="status">Arkadaşlarınla buluşmaya hazır mısın?</p>
+
+<div id="meet"></div>
+
+<footer>🔥 Hırçın Lazlar © 2026</footer>
+
+<script>
+let api = null;
+
+const button = document.getElementById("join");
+const statusText = document.getElementById("status");
+
+const GENERAL_ROOM = "HircinLazlarGenelSohbet2026";
+
+button.onclick = function(){
+
+ const name = document
+   .getElementById("username")
+   .value.trim();
+
+ if(!name){
+   alert("Lütfen bir takma ad yaz.");
+   return;
+ }
+
+ button.disabled = true;
+ statusText.textContent = "Sohbete bağlanılıyor...";
+
+ function startMeeting(){
+
+   document.getElementById("login").style.display = "none";
+
+   try{
+
+     api = new JitsiMeetExternalAPI("meet.jit.si",{
+
+       roomName: GENERAL_ROOM,
+
+       parentNode: document.getElementById("meet"),
+
+       width:"100%",
+       height:"100%",
+
+       userInfo:{
+         displayName:name
+       },
+
+       configOverwrite:{
+
+         prejoinPageEnabled:false,
+
+         startWithAudioMuted:true,
+         startWithVideoMuted:true,
+
+         disableDeepLinking:true
+       },
+
+       interfaceConfigOverwrite:{
+
+         TOOLBAR_BUTTONS:[
+           "microphone",
+           "camera",
+           "desktop",
+           "chat",
+           "participants-pane",
+           "tileview",
+           "hangup",
+           "fullscreen",
+           "settings"
+         ],
+
+         DISABLE_JOIN_LEAVE_NOTIFICATIONS:false
+       }
+     });
+
+     api.addEventListener("videoConferenceJoined",()=>{
+       statusText.textContent =
+         "🟢 Genel Sohbete bağlandın!";
+     });
+
+     api.addEventListener("videoConferenceLeft",()=>{
+       resetRoom("Sohbetten ayrıldın.");
+     });
+
+     api.addEventListener("readyToClose",()=>{
+       resetRoom("Sohbet kapatıldı.");
+     });
+
+   }catch(error){
+
+     statusText.textContent =
+       "Bağlantı hatası. Tekrar deneyin.";
+
+     document.getElementById("login").style.display="block";
+     button.disabled=false;
+   }
+ }
+
+ function resetRoom(message){
+
+   statusText.textContent=message;
+
+   document.getElementById("meet").innerHTML="";
+
+   document.getElementById("login").style.display="block";
+
+   button.disabled=false;
+   api=null;
+ }
+
+ if(window.JitsiMeetExternalAPI){
+
+   startMeeting();
+
+ }else{
+
+   const script=document.createElement("script");
+
+   script.src="https://meet.jit.si/external_api.js";
+
+   script.onload=startMeeting;
+
+   script.onerror=()=>{
+     button.disabled=false;
+     statusText.textContent=
+       "Bağlantı kurulamadı. Tekrar deneyin.";
+   };
+
+   document.head.appendChild(script);
+ }
+};
+</script>
+
+</body>
+</html>
