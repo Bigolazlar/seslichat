@@ -67,6 +67,7 @@ button{
  grid-template-columns:minmax(0, 2fr) minmax(280px, 1fr);
  gap:12px;
  padding:12px;
+ width:100%;
  height:calc(100vh - 145px);
  min-height:500px;
 }
@@ -82,6 +83,7 @@ button{
 .video-box{
  display:flex;
  flex-direction:column;
+ min-width:0;
 }
 
 .box-title{
@@ -93,20 +95,25 @@ button{
 #meet{
  flex:1;
  min-height:0;
+ width:100%;
 }
 
 #meet iframe{
  border:0;
+ width:100%;
+ height:100%;
 }
 
 .chat-box{
  display:flex;
  flex-direction:column;
+ min-width:0;
+ height:100%;
 }
 
 #messages{
  flex:1;
- min-height:0;
+ min-height:100px;
  overflow-y:auto;
  padding:12px;
  text-align:left;
@@ -148,10 +155,16 @@ button{
 }
 
 #leave{
- display:block;
+ display:none;
  margin:12px auto;
  background:#e74c3c;
  color:white;
+}
+
+footer{
+ text-align:center;
+ padding:15px;
+ color:#687786;
 }
 
 @media(max-width:700px){
@@ -160,8 +173,13 @@ button{
    height:auto;
    min-height:0;
  }
- .video-box{height:55vh;min-height:350px}
- .chat-box{height:400px}
+ .video-box{
+   height:55vh;
+   min-height:350px;
+ }
+ .chat-box{
+   height:400px;
+ }
 }
 </style>
 </head>
@@ -193,14 +211,12 @@ button{
  </section>
 
  <section class="chat-box">
-   <div class="box-title">💬 Genel Sohbet</div>
+   <div class="box-title">💬 GENEL SOHBET</div>
 
    <div id="messages">
      <div class="message">
        <div class="sender">Sistem</div>
-       <div class="content">
-         Hırçın Lazlar sohbet odasına hoş geldin!
-       </div>
+       <div class="content">Hırçın Lazlar'a hoş geldin!</div>
      </div>
    </div>
 
@@ -215,13 +231,14 @@ button{
 
 </div>
 
-<button id="leave" style="display:none">
-SOHBETTEN AYRIL
-</button>
+<button id="leave">SOHBETTEN AYRIL</button>
+
+<footer>🔥 Hırçın Lazlar © 2026</footer>
 
 <script>
 let api=null;
 let connecting=false;
+let currentName="";
 
 const ROOM="HircinLazlarGenelSohbet2026";
 
@@ -247,34 +264,37 @@ function addMessage(name,message){
 
  box.appendChild(sender);
  box.appendChild(content);
-
  messages.appendChild(box);
+
  messages.scrollTop=messages.scrollHeight;
 }
 
 function resetRoom(message){
 
- if(api){
-   const oldApi=api;
-   api=null;
+ const oldApi=api;
+ api=null;
+ connecting=false;
+
+ if(oldApi){
    try{oldApi.dispose()}catch(e){}
  }
 
- connecting=false;
  statusText.textContent=message;
-
  workspace.style.display="none";
  login.style.display="block";
  leaveButton.style.display="none";
 
+ document.getElementById("meet").innerHTML="";
+
  messages.innerHTML="";
- addMessage("Sistem","Hırçın Lazlar sohbet odasına hoş geldin!");
+ addMessage("Sistem","Hırçın Lazlar'a hoş geldin!");
 
  joinButton.disabled=false;
- document.getElementById("meet").innerHTML="";
 }
 
 function startMeeting(name){
+
+ currentName=name;
 
  login.style.display="none";
  workspace.style.display="grid";
@@ -318,14 +338,13 @@ function startMeeting(name){
 
  });
 
- // Görüşmeye katılınca
  api.addEventListener("videoConferenceJoined",()=>{
    connecting=false;
    statusText.textContent="🟢 Genel Sohbet'e bağlandın!";
-   addMessage("Sistem","Bağlantı başarılı. Sohbet edebilirsin.");
+   addMessage("Sistem","Bağlantı başarılı.");
  });
 
- // Gelen mesajlar
+ // Diğer kullanıcıların mesajlarını göster
  api.addEventListener("incomingMessage",(event)=>{
 
    if(event.message){
@@ -337,7 +356,6 @@ function startMeeting(name){
 
  });
 
- // Görüşmeden ayrılınca
  api.addEventListener("videoConferenceLeft",()=>{
    resetRoom("Sohbetten ayrıldın.");
  });
@@ -351,7 +369,6 @@ function startMeeting(name){
  }
 }
 
-// Giriş
 joinButton.onclick=function(){
 
  if(connecting || api)return;
@@ -368,7 +385,6 @@ joinButton.onclick=function(){
  statusText.textContent="Bağlanılıyor...";
 
  function loadJitsi(){
-
    startMeeting(name);
  }
 
@@ -391,7 +407,7 @@ joinButton.onclick=function(){
  }
 };
 
-// Mesaj gönderme
+// Mesaj gönder
 document.getElementById("chat-form").onsubmit=function(e){
 
  e.preventDefault();
@@ -405,10 +421,8 @@ document.getElementById("chat-form").onsubmit=function(e){
 
    api.executeCommand("sendChatMessage",message);
 
-   addMessage(
-     document.getElementById("username").value.trim(),
-     message
-   );
+   // Mesajı burada tekrar eklemiyoruz.
+   // Kendi mesajımız incomingMessage ile gelirse gösterilecek.
 
    input.value="";
 
@@ -417,7 +431,7 @@ document.getElementById("chat-form").onsubmit=function(e){
  }
 };
 
-// Ayrılma
+// Sohbetten ayrıl
 leaveButton.onclick=function(){
 
  if(api){
@@ -430,10 +444,6 @@ leaveButton.onclick=function(){
 };
 
 </script>
-
-<footer style="text-align:center;padding:15px;color:#687786">
-🔥 Hırçın Lazlar © 2026
-</footer>
 
 </body>
 </html>
